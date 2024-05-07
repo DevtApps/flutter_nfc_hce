@@ -217,37 +217,50 @@ class KHostApduService : HostApduService() {
             return response
         }
 
-        if (commandApdu.sliceArray(0..1).contentEquals(NDEF_READ_BINARY)) {
-            val offset = commandApdu.sliceArray(2..3).toHex().toInt(16)
-            val length = commandApdu.sliceArray(4..4).toHex().toInt(16)
+        try {
 
-            val fullResponse = ByteArray(NDEF_URI_LEN.size + NDEF_URI_BYTES.size)
-            System.arraycopy(NDEF_URI_LEN, 0, fullResponse, 0, NDEF_URI_LEN.size)
-            System.arraycopy(
-                NDEF_URI_BYTES,
-                0,
-                fullResponse,
-                NDEF_URI_LEN.size,
-                NDEF_URI_BYTES.size,
-            )
+            if (commandApdu.size >= 2 &&  commandApdu.sliceArray(0..1).contentEquals(NDEF_READ_BINARY)) {
+                val offset = commandApdu.sliceArray(2..3).toHex().toInt(16)
+                var length = 0
+                if (commandApdu.size >= 5) {
+                    length = commandApdu.sliceArray(4..4).toHex().toInt(16)
+                    // rest of the code
+                } else {
+                    // Handle the case where commandApdu doesn't have enough elements
+                    // You might log an error, throw an exception, or take appropriate action
+                }
 
-            Log.i(TAG, "NDEF_READ_BINARY triggered. Full data: " + fullResponse.toHex())
-            Log.i(TAG, "READ_BINARY - OFFSET: $offset - LEN: $length")
+                val fullResponse = ByteArray(NDEF_URI_LEN.size + NDEF_URI_BYTES.size)
+                System.arraycopy(NDEF_URI_LEN, 0, fullResponse, 0, NDEF_URI_LEN.size)
+                System.arraycopy(
+                    NDEF_URI_BYTES,
+                    0,
+                    fullResponse,
+                    NDEF_URI_LEN.size,
+                    NDEF_URI_BYTES.size,
+                )
 
-            val slicedResponse = fullResponse.sliceArray(offset until fullResponse.size)
+                Log.i(TAG, "NDEF_READ_BINARY triggered. Full data: " + fullResponse.toHex())
+                Log.i(TAG, "READ_BINARY - OFFSET: $offset - LEN: $length")
 
-            // Build our response
-            val realLength = if (slicedResponse.size <= length) slicedResponse.size else length
-            val response = ByteArray(realLength + A_OKAY.size)
+                val slicedResponse = fullResponse.sliceArray(offset until fullResponse.size)
 
-            System.arraycopy(slicedResponse, 0, response, 0, realLength)
-            System.arraycopy(A_OKAY, 0, response, realLength, A_OKAY.size)
+                // Build our response
+                val realLength = if (slicedResponse.size <= length) slicedResponse.size else length
+                val response = ByteArray(realLength + A_OKAY.size)
 
-            Log.i(TAG, "NDEF_READ_BINARY triggered. Our Response: " + response.toHex())
+                System.arraycopy(slicedResponse, 0, response, 0, realLength)
+                System.arraycopy(A_OKAY, 0, response, realLength, A_OKAY.size)
 
-            READ_CAPABILITY_CONTAINER_CHECK = false
-            return response
+                Log.i(TAG, "NDEF_READ_BINARY triggered. Our Response: " + response.toHex())
+
+                READ_CAPABILITY_CONTAINER_CHECK = false
+                return response
+            }
+        }catch (e: Exception){
+
         }
+     
 
         //
         // We're doing something outside our scope
